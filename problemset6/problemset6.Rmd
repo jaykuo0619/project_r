@@ -1,0 +1,254 @@
+---
+title: 'IMT 573: Problem Set 6 - Regression'
+author: "Jay Kuo"
+date: '2022/11/16'
+output: pdf_document
+---
+
+<!-- This syntax can be used to add comments that are ignored during knitting process. -->
+
+##### Collaborators: <!-- BE SURE TO LIST ALL COLLABORATORS HERE! -->
+
+##### Instructions:
+
+Before beginning this assignment, please ensure you have access to R and RStudio. 
+
+1. Download the `problemset6.Rmd` file from Canvas. Open `problemset6.Rmd` in RStudio and supply your solutions to the assignment by editing `problemset6.Rmd`. 
+
+
+2. Replace the "Insert Your Name Here" text in the `author:` field with your own full name. Any collaborators must be listed on the top of your assignment. 
+
+4. All materials and resources that you use (with the exception of lecture slides) must be appropriately referenced within your assignment. In particular, note that Stack Overflow is licenses as Creative Commons (CC-BY-SA). This means you have to attribute any code you refer from SO.
+
+5. Partial credit will be awarded for each question for which a serious attempt at finding an answer has been shown. But please **DO NOT** submit pages and pages of hard-to-read code and attempts that is impossible to grade. That is, avoid redundancy. Remember that one of the key goals of a data scientist is to produce coherent reports that others can easily follow.  Students are \emph{strongly} encouraged to attempt each question and to document their reasoning process even if they cannot find the correct answer. If you would like to include R code to show this process, but it does not run without errors you can do so with the `eval=FALSE` option as follows:
+
+```{r example chunk with a bug, eval=FALSE}
+a + b # these object don't exist 
+# if you run this on its own it with give an error
+```
+
+6. When you have completed the assignment and have **checked** that your code both runs in the Console and knits correctly when you click `Knit PDF`, rename the knitted PDF file to `ps6_YourLastName_YourFirstName.pdf`, and submit the PDF file on Canvas.
+
+7.  Collaboration is often fun and useful, but each student must turn in an individual write-up in their own words as well as code/work that is their own.  Regardless of whether you work with others, what you turn in must be your own work; this includes code and interpretation of results. The names of all collaborators must be listed on each assignment. Do not copy-and-paste from other students' responses or code.
+
+##### Setup
+
+In this problem set you will need, at minimum, the following R packages.
+
+```{r Setup, message=FALSE} 
+# Load standard libraries
+library(tidyverse)
+library(AmesHousing)
+```
+
+\textbf{Housing Values in Ames, Iowa}
+
+In this problem we will use the Ames Housing dataset that is available as part of the AmesHousing package. This dataset contains information about home sales in the town of Ames, Iowa. Information on variable names and other details can be found in the AmesHousing package documentation as well as here: http://jse.amstat.org/v19n3/decock/DataDocumentation.txt. Use this data to answer the following questions.
+
+### Question 1: Load the package and use the `make_ames()` to store the dataset. Describe what this function does.
+
+**Question**
+
+- Loads data and describes function.
+
+**Answer**
+
+```{r}
+?make_ames()
+dt <- make_ames()
+```
+
+
+### Question 2: Consider this data in context - what is the response variable of interest for a dataset on home sales? Filter the data to only contain observations where the Sale_Condition was "Normal." Select the following variables from the data and describe what each means: Lot_Frontage, Lot_Area, Bldg_Type, Overall_Qual, Overall_Cond, Year_Built, Gr_Liv_Area, TotRms_AbvGrd, Fireplaces, Garage_Cars, Garage_Area, Wood_Deck_SF, Total_Bsmt_SF, Full_Bath, Half_Bath, Year_Sold, and Sale_Price
+
+**Question**
+
+- Filters to Normal sales
+- Names the correct variable of interest for the response variable.
+
+**Answer**
+
+
+```{r}
+library(magrittr)
+dt %<>%
+  filter(Sale_Condition == "Normal") %>%
+  select(Lot_Frontage, Lot_Area, Bldg_Type, Overall_Qual, Overall_Cond, Year_Built, Gr_Liv_Area, TotRms_AbvGrd, Fireplaces, Garage_Cars, Garage_Area, Wood_Deck_SF, Total_Bsmt_SF, Full_Bath, Half_Bath, Year_Sold, Sale_Price)
+dt
+```
+
+
+**Question**
+
+- Describes each variable
+
+**Answer**
+
+- Lot_Frontage: Linear feet of street connected to property
+- Lot_Area: Lot size in square feet
+- Bldg_Type: Type of dwelling (+)
+- Overall_Qual: Rates the overall material and finish of the house (+)
+- Overall_Cond: Rates the overall condition of the house (+)
+- Year_Built: Original construction date (+)
+- Gr_Liv_Area: Above grade (ground) living area square feet
+- TotRms_AbvGrd: Total rooms above grade (does not include bathrooms)
+- Fireplaces: Number of fireplaces 
+- Garage_Cars: Size of garage in car capacity
+- Garage_Area: Size of garage in square feet
+- Wood_Deck_SF: Wood deck area in square feet
+- Total_Bsmt_SF: Total square feet of basement area
+- Full_Bath: Full bathrooms above grade
+- Half_Bath: Half baths above grade 
+- Year_Sold: Year Sold (YYYY) (+)
+- Sale_Price: Sale price
+
+
+### Question 3: Provide a brief dive into the data and discuss any salient aspects of the variables: missingness, ranges, distributions, etc. Does each observation have complete data (Hint: you can use the complete.cases function in R)?
+
+**Question**
+
+- Describes salient aspects of the data.
+
+**Answer**
+
+```{r}
+# structure
+str(data.frame(dt))
+
+# summary statistics
+summary(dt)
+
+# check missing value
+sum(complete.cases(dt) != 1)
+```
+There are 0 missing value.
+
+### Question 4: For each predictor, fit a simple (i.e. using only the one variable) linear regression model to predict the home sale price. Dummify variables as/when needed. In which of the models is there a statistically significant association between the predictor and the response? Describe your results.
+
+**Question**
+
+- Fits regression model for each variable.
+
+**Answer**
+
+```{r}
+dt_new <- dt
+
+# assign `Bldg_Type = 1` if Bldg_Type == "OneFam"
+dt_new$Bldg_Type <- ifelse(dt$Bldg_Type == "OneFam", 1, 0)
+
+# Assign `Overall_Qual = 1` if Overall_Qual > Average
+dt_new$Overall_Qual <- ifelse(dt$Overall_Qual %in% c("Above_Average", "Good", "Very_Good", "Excellent", "Very_Excellent"), 1, 0)
+
+# Assign `Overall_Cond = 1` if Overall_Cond > Average
+dt_new$Overall_Cond <- ifelse(dt$Overall_Cond %in% c("Above_Average", "Good", "Very_Good", "Excellent", "Very_Excellent"), 1, 0)
+
+# Assign `Year_Built = 1` if Year_Built >= 1971
+dt_new$Year_Built <- ifelse(dt$Year_Built >= 1971, 1, 0)
+
+
+# Assign `Year_Sold = 1` if Year_Sold >= 2008
+dt_new$Year_Sold <- ifelse(dt$Year_Sold >= 2008, 1, 0)
+
+dt_new
+```
+
+```{r}
+SLR <- list()
+
+y <- c("Sale_Price")
+controls <- colnames(dt)[-17]
+
+for (i in 1:16){
+  #print(paste("Start the iteration: ", i))
+  SLR[[i]] <- lm(formula= as.formula(paste(y, controls[i], sep = " ~ ")), data = dt_new)
+}
+```
+
+```{r}
+library(jtools); library(huxtable)
+export_summs(SLR[[1]], SLR[[2]], SLR[[3]], SLR[[4]])
+
+```
+```{r}
+export_summs(SLR[[5]], SLR[[6]], SLR[[7]], SLR[[8]])
+
+```
+```{r}
+export_summs(SLR[[9]], SLR[[10]], SLR[[11]], SLR[[12]])
+```
+
+```{r}
+export_summs(SLR[[13]], SLR[[14]], SLR[[15]], SLR[[16]])
+```
+
+**Question**
+
+- Correctly answers where there is a statistically significant association.
+- Describes results.
+
+**Answer**
+
+- Excluding `Year Sold`, other covariates are significant individually at 5\% level.
+
+### Question 5: Fit a multiple regression model to predict the response using all of the predictors. Describe your results. For which predictors can we reject the null hypothesis $H_0: \beta_j = 0$?
+
+**Question**
+
+- Fits a multiple regression model to predict the response using all of the predictors.
+
+**Answer**
+
+```{r}
+# y ~ x1 + x2 ...
+MLR<- dt_new %>%
+  lm(formula = as.formula(paste(y, paste(c(controls), collapse = "+"), sep = " ~ ")), data = .)
+
+summary(MLR)
+```
+
+**Question**
+
+- Correctly answers which predictors allow for rejecting the null hypothesis.
+
+**Answer**
+
+- Excluding `Full_Bath`, `Half_Bath`, and `Year_Sold`, other covariates are significant individually at 5\% level.
+
+### Question 6: How do your results from (4) compare to your results from (5)? You need to compare the coefficients across the two models and report on the changes you observe and reasons why. What happened to the coefficients? What happened to the p-values? Why? 
+
+**Question**
+
+- Compares results from two questions.
+
+**Answer**
+
+- Compared to model (4), `Full_Bath` and `Half_Bath` are insignificant in model (5) at 5\% level.
+
+**Question**
+
+- Explains what happens to p-values and coefficients.
+
+**Answer**
+
+- 1. Absolute values of coefficients in MLR are smaller than in SLR.
+
+- 2. Most p-value of covariates in MLR are smaller than in SLR.
+
+```{r}
+# SLR results
+SLR_coef <- c()
+SLR_pval <- c()
+for (i in 1:16){
+  SLR_coef[i] <- summary(SLR[[i]])$coefficients[2, 1] 
+  SLR_pval[i] <- summary(SLR[[i]])$coefficients[2, 4] 
+}
+
+# MLR results
+MLR_coef <- summary(MLR)$coefficients[2:17, 1] 
+MLR_pval <- summary(MLR)$coefficients[2:17, 4] 
+
+# comparison
+cbind(SLR_coef, MLR_coef)
+cbind(SLR_pval, MLR_pval)
+```

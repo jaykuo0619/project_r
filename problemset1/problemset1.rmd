@@ -1,0 +1,218 @@
+---
+title: 'IMT 573: Problem Set 1 - Exploring Data'
+author: "Jay Kuo"
+date: 'Due: Friday, October 14, 2022 by midnight PST'
+output: pdf_document
+---
+
+<!-- This syntax can be used to add comments that are ignored during knitting process. -->
+
+##### Collaborators: <!-- BE SURE TO LIST ALL COLLABORATORS HERE! -->
+
+##### Instructions:
+
+Before beginning this assignment, please ensure you have access to R and RStudio. 
+
+1. Download the `problemset1.Rmd` file from Canvas. Open `problemset1.Rmd` in RStudio and supply your solutions to the assignment by editing `problemset1.Rmd`. 
+
+2. Replace the "Insert Your Name Here" text in the `author:` field with your own full name. Any collaborators must be listed on the top of your assignment. Collaboration shouldn't be confused with group project work (where each person does a part of the project). Working on problem sets should be your individual contribution. More on that in point 8.
+
+3. Be sure to include well-documented (e.g. commented) code chucks, figures, and clearly written text chunk explanations as necessary. Any figures should be clearly labeled and appropriately referenced within the text. Be sure that each visualization adds value to your written explanation; avoid redundancy -- you do not need four different visualizations of the same pattern.
+
+4. All materials and resources that you use (with the exception of lecture slides) must be appropriately referenced within your assignment. In particular, note that Stack Overflow is licenses as Creative Commons (CC-BY-SA). This means you have to attribute any code you refer from SO.
+
+5. Partial credit will be awarded for each question for which a serious attempt at finding an answer has been shown. But please **DO NOT** submit pages and pages of hard-to-read code and attempts that is impossible to grade. That is, avoid redundancy. Remember that one of the key goals of a data scientist is to produce coherent reports that others can easily follow.  Students are \emph{strongly} encouraged to attempt each question and to document their reasoning process even if they cannot find the correct answer. If you would like to include R code to show this process, but it does not run without errors you can do so with the `eval=FALSE` option as follows:
+
+```{r example chunk with a bug, eval=FALSE}
+a + b # these objects don't exist 
+# if you run this on its own it with give an error
+```
+
+7. When you have completed the assignment and have **checked** that your code both runs in the Console and knits correctly when you click `Knit PDF`, rename the knitted PDF file to `ps1_ourLastName_YourFirstName.pdf`, and submit the PDF file on Canvas.
+
+8.  Collaboration is often fun and useful, but each student must turn in an individual write-up in their own words as well as code/work that is their own.  Regardless of whether you work with others, what you turn in must be your own work; this includes code and interpretation of results. The names of all collaborators must be listed on each assignment. Do not copy-and-paste from other students' responses or code.
+
+#### Problem 1: Basic R Programming
+Write a function, `calculate_bmi` to calculate a person's body mass index, when given two input parameters, 1) weight in pounds and 2) height in inches.
+
+*NOTE: You would have to go to external sources to find the formula of bmi.*
+In your response, before presenting your code for the function, tell us your official reference for the BMI formulae.
+
+##### Insert Response first
+<!-- Use markdown and share a link to the source -->
+---
+https://www.cdc.gov/nccdphp/dnpao/growthcharts/training/bmiage/page5_2.html
+---
+
+##### Insert code. Your code should appear within R Code Chunks.
+```{r}
+calculate_bmi <-function(pounds, inches)
+  {return(pounds / (inches**2) *703)}
+#test
+calculate_bmi(154, 70)
+```
+
+
+
+#### Problem 2: Exploring the NYC Flights Data
+
+In this problem set, we will use the data on all flights that departed NYC (i.e. JFK, LGA or EWR) in 2013. You can find this data in the `nycflights13` R package. 
+
+##### Setup: Problem 2
+
+You will need, at minimum, the following R packages.
+The data itself resides in package *nycflights13*. You may need to install both.
+
+```{r Setup, message=FALSE, warning=FALSE}
+# Load standard libraries
+library(tidyverse)
+library('nycflights13')
+```
+
+```{r}
+# Load the nycflights13 library which includes data on all
+# lights departing NYC
+data(flights)
+# Note the data itself is called flights, we will make it into a local df
+# for readability
+flights <- tbl_df(flights)
+# Look at the help file for information about the data
+# ?flights
+flights
+# summary(flights)
+```
+
+##### (a) Importing Data 
+
+Load the data and describe in a short paragraph how the data was collected and what each variable represents. 
+```{r}
+data <- flights
+data
+# The data was collected from airports information
+# dep_time is the departure time in minutes and ached_dep_time is the scheduled departure times in minutes
+# sched_dep_time is the scheduled departure time in minutes
+# arr_time is the arrival times in minutes
+# sched_arr_time is the scheduled arrival times in minutes
+# dep_delay means departure delay in minutes, if it's negative, then it means depart earlier than scheduled.
+# arr_delay is the same concept as dep_delay, except it is the delay of arrival instead of departure.
+# carrier is the carrier abbreviation
+# flight is the flight number
+# tailnum is the plane tail number.
+# origin, dest means origin and destination.
+# air_time is the amount of time spent in the air in minutes
+# distance is the distance between airports in miles
+# hour, minute is time of scheduled departure broken into hour and minutes.
+# time_hour is scheduled date and hour of the flight as a POSIXct date. 
+```
+
+
+##### (b) Inspecting Data
+Perform a basic inspection of the data and discuss what you find. Inspections may involve asking the following questions (the list is not inclusive, you may well ask other questions):
+  
+  * How many distinct flights do we have in the dataset?
+
+Ans:
+3844
+```{r}
+length(levels(factor(data$flight)))
+```
+
+  * How many missing values are there in each variable?
+  Ans:
+  dep_time: 8255
+  dep_delay: 8255
+  arr_time: 8713
+  arr_delay: 9430
+  arr_time: 9430
+  
+```{r}
+summary(data)
+```
+
+  
+  * Do you see any unreasonable values? *Hint: Check out min, max and range functions.*
+
+Ans: 
+To me, an unreasonable value happened at arrival delay and departure delay. Because their mean and median are too different. 
+##### (c) Formulating Questions
+
+Consider the NYC flights data. Formulate two motivating questions you want to explore using this data. Describe why these questions are interesting and how you might go about answering them.
+
+Example questions:
+  
+  * Which airport, JFK or LGA, experience more delays?
+
+```{r}
+# When is Peak season and slack season in a year?
+# Choose the origin column which is JFK, and sum its dep_delay & arr_delay and divided by the total of JFK flights, same as LGA 
+JFKsum <- sum(data[data$origin == 'JFK', ]$dep_delay, na.rm = TRUE)+
+  sum(data[data$origin == 'JFK', ]$arr_delay, na.rm = TRUE)
+JFKsum <- JFKsum / length(data[data$origin == "JFK", ])
+LGAsum <- sum(data[data$origin=='LGA', ]$dep_delay, na.rm = TRUE) +
+  sum(data[data$origin == 'LGA', ]$arr_delay, na.rm = TRUE)
+LGAsum <- LGAsum / length(data[data$origin == "LGA", ])
+if (JFKsum > LGAsum){
+  cat("JFK experience more delays and the average delay time is ", JFKsum, " minutes")
+}else{
+  cat("LGA experience more delays and the average delay time is ", LGAsum, " minutes")
+}
+
+```
+  * What was the worst day to fly out?
+
+Ans:
+3/8 has the max of daily total delay, so I think it is the worst day to fly out.
+```{r}
+# The most delayed date might be the worst day to fly out.
+data %>%
+  group_by(month, day) %>%
+  summarise(total_delay = sum(dep_delay, na.rm = TRUE) + sum(arr_delay, na.rm = TRUE)) %>%
+  filter(total_delay == max(total_delay), na.rm = TRUE)
+
+```
+  
+  * Are there seasonal patterns to delays?
+  
+Ans:
+Yes, seems like summer (July and August) have more delays than usual. The peak happened at March. The red lines added separate the graph into different months.
+```{r}
+day_data <- data %>%
+  group_by(month, day) %>%
+  summarise(total_delay = sum(dep_delay, na.rm = TRUE) + sum(arr_delay, na.rm = TRUE)) 
+plot(day_data$total_delay, type = "l", xlab= "Days of the year", ylab= "Delay time in minutes")
+ abline(v = 31, col = 'red')
+ abline(v = 59, col = 'red')
+ abline(v = 90, col = 'red')
+ abline(v = 120, col = 'red')
+ abline(v = 151, col = 'red')
+ abline(v = 181, col = 'red')
+ abline(v = 212, col = 'red')
+ abline(v = 243, col = 'red')
+ abline(v = 273, col = 'red')
+ abline(v = 304, col = 'red')
+ abline(v = 334, col = 'red')
+ abline(v = 365, col = 'red')
+```
+```
+  
+
+##### (d) Exploring Data
+
+For each of the questions you proposed in Problem 1c, perform an exploratory data analysis designed to address the question. Produce visualizations (graphics or tables) to answer your question.
+  * You need to explore the data from the point of view of the questions
+  * Depending on the question, you will need to provide a more precise definition. For example, what does "more delays" mean.
+  * At a minimum, you should produce two visualizations (graphics or tables) related to each question. Be sure to describe what the visuals show and how they speak to your question of interest. 
+  
+  
+Ans: 
+The visualization is shown above in each problem.
+
+
+##### (e) Challenge Your Results
+
+After completing the exploratory analyses from Problem 1d, do you have any concerns about your findings? How well defined was your original question? Do you have concerns regarding your answer? Is additional analysis/different data needed? Comment on any ethical and/or privacy concerns you have with your analysis. 
+
+Ans: 
+I am not sure about my finding regarding the seasonal patterns of delay. Because based on the plot I created, the difference is subtle, and I am wondering if there is any other way to see the seasonal patterns.
+
+

@@ -1,0 +1,330 @@
+---
+title: 'IMT 573: Problem Set 4 - Data Analysis'
+author: "Jay Kuo"
+date: 'Due: Friday, November 4, 2022'
+output:
+  pdf_document: default
+  html_document: default
+---
+
+<!-- This syntax can be used to add comments that are ignored during knitting process. -->
+
+##### Collaborators: <!-- BE SURE TO LIST ALL COLLABORATORS HERE! -->
+
+##### Instructions:
+
+Before beginning this assignment, please ensure you have access to R and RStudio. 
+
+1. Download the `problemset4.Rmd` file from Canvas. Open `problemset4.Rmd` in RStudio and supply your solutions to the assignment by editing `problemset4.Rmd`. 
+
+2. Replace the "Insert Your Name Here" text in the `author:` field with your own full name. Any collaborators must be listed on the top of your assignment. 
+
+4. All materials and resources that you use (with the exception of lecture slides) must be appropriately referenced within your assignment. In particular, note that Stack Overflow is licenses as Creative Commons (CC-BY-SA). This means you have to attribute any code you refer from SO.
+
+5. Partial credit will be awarded for each question for which a serious attempt at finding an answer has been shown. But please **DO NOT** submit pages and pages of hard-to-read code and attempts that is impossible to grade. That is, avoid redundancy. Remember that one of the key goals of a data scientist is to produce coherent reports that others can easily follow.  Students are \emph{strongly} encouraged to attempt each question and to document their reasoning process even if they cannot find the correct answer. If you would like to include R code to show this process, but it does not run without errors you can do so with the `eval=FALSE` option as follows:
+
+```{r example chunk with a bug, eval=FALSE}
+a + b # these object don't exist 
+# if you run this on its own it will give an error
+```
+
+6. When you have completed the assignment and have **checked** that your code both runs in the Console and knits correctly when you click `Knit PDF`, rename the knitted PDF file to `ps4_ourLastName_YourFirstName.pdf`, and submit the PDF file on Canvas.
+
+7.  Collaboration is often fun and useful, but each student must turn in an individual write-up in their own words as well as code/work that is their own.  Regardless of whether you work with others, what you turn in must be your own work; this includes code and interpretation of results. The names of all collaborators must be listed on each assignment. Do not copy-and-paste from other students' responses or code.
+
+##### Setup
+
+In this problem set you will need, at minimum, the following R packages.
+
+```{r Setup, message=FALSE, warning=FALSE}
+# Load standard libraries
+library(tidyverse)
+library(gridExtra)
+```
+
+#### Problem 1: 50 States in the USA
+
+In this problem we will use the `state` dataset, available as part of the R statistical computing platform. This data is related to the 50 states of the United States of America. Load the data and use it to answer the following questions. See [here](https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/state.html) for more.
+
+##### (a) 
+>Describe the data and each variable it contains. Tidy the data, preparing it for a data analysis.
+
+**Question**
+
+- Describes data and each variable.
+
+**Answer**
+
+```{r}
+# data(state) to get the data
+?state
+```
+
+- Meaning of each variable:
+
+- state.abb: character vector of 2-letter abbreviations for the state names.
+
+- state.area: numeric vector of state areas (in square miles).
+
+- state.center: list with components named x and y giving the approximate geographic center of each state in negative longitude and latitude. Alaska and Hawaii are placed just off the West Coast.
+
+- state.division: factor giving state divisions (New England, Middle Atlantic, South Atlantic, East South Central, West South Central, East North Central, West North Central, Mountain, and Pacific).
+
+- state.name: character vector giving the full state names.
+
+- state.region: factor giving the region (Northeast, South, North Central, West) that each state belongs to.
+
+- state.x77: matrix with 50 rows and 8 columns giving the following statistics in the respective columns.
+
+- Population: population estimate as of July 1, 1975
+
+- Income: per capita income (1974)
+
+- Illiteracy: illiteracy (1970, percent of population)
+
+- Life Exp: life expectancy in years (1969–71)
+
+- Murder: murder and non-negligent manslaughter rate per 100,000 population (1976)
+
+- HS Grad: percent high-school graduates (1970)
+
+- Frost: mean number of days with minimum temperature below freezing (1931–1960) in capital or large city
+
+- Area: land area in square miles
+
+**Question**
+
+- Data is tidy and exploratory analysis is conducted
+
+**Answer**
+
+```{r tidy the data}
+state_data_test <- data.frame(abb = state.abb,
+                         a = state.area,
+                         center_x = state.center[1],
+                         center_y = state.center[2],
+                         division = state.division,
+                         name = state.name,
+                         region = state.region) %>%
+  cbind(state.x77) # Column bind
+```
+
+```{r}
+# structure
+str(state_data)
+
+# summary statistics
+summary(state_data)
+```
+
+
+##### (b) 
+>Suppose you want to explore the relationship between a state's `Murder` rate and other characteristics of the state, for example population, illiteracy rate, and more. Begin by examining the bivariate relationships associated with `Murder` rate present in the data. What does your analysis suggest might be important varibles to consider in building a model to explain variation in murder rates?
+
+**Question**
+
+- Examines bivariate relationships using charts or plots
+
+- Visualizations have appropriate titles, labeled axes, and trend lines if applicable, printing data frames will not count
+
+**Answer**
+
+```{r}
+?ggcorrplot
+```
+
+
+```{r}
+library(ggcorrplot)
+
+ggcorrplot(cor(state_data[,8:15]),
+           title = 'Correlation Matrix',
+           type = 'lower',
+           lab = TRUE)
+```
+
+**Question**
+
+- Discusses important variables to consider in model building
+
+**Answer**
+
+- Life Exp: More murder, less people survived, lower life expectancy
+
+- Illiteracy: Lower education level, higher murder rate
+
+- Frost: When the weather is bad, fewer people will be on the street and less murder will occur.
+
+- HS Grad: Higher the education level, lower the murder rate
+
+##### (c) 
+>Develop a new research question of your own that you can address using the `state` dataset. Clearly state the question you are going to address. Provide at least one visualization to support your exploration of this question. Discuss what you find.
+
+**Question**
+
+- Develops research question.
+
+**Answer**
+
+- Is there the regional difference in murder rate?
+
+**Question**
+
+- Creates visualization with appropriate title, labeled axe, and trend lines if applicable, printing data frames will not count.
+
+**Answer**
+
+```{r}
+library(maps)
+library(mapdata)
+library(magrittr)
+
+state_data$name %<>% 
+  tolower()
+
+# combine the data with US map information
+
+dt <- map_data("state") %>%
+  left_join(state_data, by = c("region" = "name"))
+
+ggplot(data = dt, aes(x= long, y= lat, fill = Murder, group = region)) +
+  geom_polygon(color = "white") +
+  scale_fill_distiller("Murder") +
+  ggtitle("Murder rate map")
+```
+
+**Question**
+
+- Discuss findings
+
+**Answer**
+
+- The murder rate in the northeast, north, and northwest areas is lower according to the plot.
+
+#### Problem 2: Asking Data Science Questions: Crime and Educational Attainment
+
+
+In Problem Set 3, you joined data about crimes and educational attainment. Here you will use this new combined dataset to examine questions around crimes in Seattle and the educational attainment of people
+living in the areas in which the crime occurred. A standard dataset will be available on canvas after the problem set 3 due date.
+
+#### (a) Develop a Data Science Question
+
+>Develop your own question to address in this analysis. Your question should be specific and measurable, and it should be able to be addressed through a basic analysis of the crime dataset you compiled in Problem Set 3. 
+
+**Question**
+
+- Develop question for analysis.
+- Question is specific and measurable.
+
+**Answer**
+
+```{r}
+# import the data
+joint_data <- read.csv("/Users/Jay/Desktop/J/Working on/MSIM/IMT573/problem set/problemset4/joined_data.csv")
+```
+
+**Answer**
+
+- What is the cumulated beat of each category in each year? 
+
+#### (b) Describe and Summarize
+
+>Briefly summarize the dataset, describing what data exists and its basic properties. Comment on any issues that need to be resolved before you can proceed with your analysis. 
+
+**Question**
+
+- Summarizes dataset, describes what data exists and performs a descriptive analysis
+
+**Answer**
+
+```{r}
+#summary(join_data)
+#str(joint_data)
+colnames(joint_data)
+```
+
+- Report number [1]
+- Time: [2] - [5], [12]
+- Crime type: [6] - [7]
+- Location of incident: [8] - [11]
+- Location of population: [13] - [20]
+- Population: [21], [26]
+- Education level [22] - [25], [27] - [35]
+
+**Question**
+
+- Comments on any issues within data that need to be resolved
+
+**Answer**
+
+- I need to create one variables, count.
+In this case, one beat is one count, I then can further analyze if the number of crimes is based on the beat.
+
+#### (c) Data Analysis
+
+>Use the dataset to provide empirical evidence that helped address your question from part (a). Discuss your results. Provide at least one visualization to support your narrative. 
+
+**Question**
+
+- Conducts analysis appropriate for chosen question.
+
+**Answer** 
+
+```{r}
+joint_data$Count <- 1
+joint_data$Year <- joint_data$Occurred.Date %>%
+  str_sub(start = 7L, end = 10L)
+
+tab <- aggregate(Count ~ Year + Beat, data = joint_data, FUN = sum)
+```
+
+**Question**
+
+- Creates visualization with appropriate title, labeled axes, and trend lines if applicable, printing data frames will not count
+
+**Answer**
+
+```{r}
+ggplot(tab, aes(x = Year, y = Count, fill = Beat, group = Beat))+
+  geom_area()+
+  theme_minimal()+
+    labs(title = "Number of crimes in different beats")
+```
+
+**Question**
+
+- Discussion of the result.
+
+**Answer**
+
+- Each beat has similar trend almost every year.
+There are more crimes in 2014-2018, and the data of 2019 is not complete.
+Also, from the plot, 2019 drop because the dataset doesn't have complete record of 2019.
+
+#### (d) Reflect and Question
+
+>Comment on the questions (and answers) in this analysis. Were you able to answer all of these questions? Are all questions well defined? Is the data good enough to answer all these?
+
+**Question**
+
+- Reflects on question quality and analysis process with thoughtful discussion.
+
+**Answer**
+
+ 
+- Although the number of crimes of different beats is different, the time trends are similar to each other.
+
+**Question**
+
+- Answer all sections of the question.
+
+**Answer**
+
+```{r}
+library(reshape)
+cast(tab, Year~Beat, value.var = "Count") 
+```
+
+**Answer**
+
+- Through this answer, we can find out exact number difference of each beat of each year compare to different year as well as each beat compare to each other.

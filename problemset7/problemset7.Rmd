@@ -1,0 +1,479 @@
+---
+title: "IMT 573: Problem Set 7 - Regression"
+author: "Jay Kuo"
+date: ''
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+  word_document: default
+---
+
+<!-- This syntax can be used to add comments that are ignored during knitting process. -->
+
+##### Collaborators: <!-- BE SURE TO LIST ALL COLLABORATORS HERE! -->
+
+##### Instructions:
+
+Before beginning this assignment, please ensure you have access to R and RStudio. 
+
+1. Download the `problemset7.Rmd` file from Canvas. Open `problemset7.Rmd` in RStudio and supply your solutions to the assignment by editing `problemset7.Rmd`. 
+
+
+2. Replace the "Insert Your Name Here" text in the `author:` field with your own full name. Any collaborators must be listed on the top of your assignment. 
+
+4. All materials and resources that you use (with the exception of lecture slides) must be appropriately referenced within your assignment. In particular, note that Stack Overflow is licenses as Creative Commons (CC-BY-SA). This means you have to attribute any code you refer from SO.
+
+5. Partial credit will be awarded for each question for which a serious attempt at finding an answer has been shown. But please **DO NOT** submit pages and pages of hard-to-read code and attempts that is impossible to grade. That is, avoid redundancy. Remember that one of the key goals of a data scientist is to produce coherent reports that others can easily follow.  Students are \emph{strongly} encouraged to attempt each question and to document their reasoning process even if they cannot find the correct answer. If you would like to include R code to show this process, but it does not run without errors you can do so with the `eval=FALSE` option as follows:
+
+```{r example chunk with a bug, eval=FALSE}
+a + b # these object don't exist 
+# if you run this on its own it with give an error
+```
+
+6. When you have completed the assignment and have **checked** that your code both runs in the Console and knits correctly when you click `Knit PDF`, rename the knitted PDF file to `ps6_ourLastName_YourFirstName.pdf`, and submit the PDF file on Canvas.
+
+7.  Collaboration is often fun and useful, but each student must turn in an individual write-up in their own words as well as code/work that is their own.  Regardless of whether you work with others, what you turn in must be your own work; this includes code and interpretation of results. The names of all collaborators must be listed on each assignment. Do not copy-and-paste from other students' responses or code.
+
+##### Setup
+
+In this problem set you will need, at minimum, the following R packages.
+
+```{r Setup, message=FALSE}
+# Load standard libraries
+library(tidyverse)
+library(dplyr)
+library(MASS) # Modern applied statistics functions
+```
+
+
+### Problem 1: Housing values in Ames, Iowa
+
+In this problem we will continue using the Ames housing dataset. This dataset
+contains information about home sales in Ames, IA. You used this dataset in the previous problem set.
+
+As before, load the package and use `make_ames()` to store the dataset. Filter the data to only contain observations where the Sale_Condition was "Normal." As before, the variables of interest are: Lot_Frontage, Lot_Area, Bldg_Type, Overall_Qual, Overall_Cond, Year_Built, Gr_Liv_Area, TotRms_AbvGrd, Fireplaces, Garage_Cars, Garage_Area, Wood_Deck_SF, Total_Bsmt_SF, Full_Bath, Half_Bath, Year_Sold, and Sale_Price. You will be modeling Sale_Price.
+
+
+#### Part a
+
+Use the following predictors: `Garage_Cars`, `Gr_Liv_Area`, `Lot_Area`, and add an additional explanatory variable of your choice - something that you think might be interesting to analyze. Provide rationale for your choice of additional explanatory variable. For each predictor do the following:
+
+1. Make a scatterplot that displays how `Sale_Price` is related to that predictor and add a line of best fit to that plot. Comment on the results - do you see any relationship? 
+
+*Hint: add the line with `geom_smooth` or `abline` methods*
+
+**Answer**
+
+```{r, message=FALSE, warning=FALSE}
+library(magrittr)
+
+# import the data set
+library(AmesHousing)
+dt <- make_ames()
+
+dt %<>%
+  filter(Sale_Condition == "Normal") %>% #subset(Sale_Condition == "Normal")
+  dplyr::select(Lot_Frontage, Lot_Area, Bldg_Type, Overall_Qual, Overall_Cond, Year_Built, Gr_Liv_Area, TotRms_AbvGrd, Fireplaces, Garage_Cars, Garage_Area, Wood_Deck_SF, Total_Bsmt_SF, Full_Bath, Half_Bath, Year_Sold, Sale_Price)
+
+# adjust some variables
+dt_new <- dt
+
+# Assign `Bldg_Type = 1` if Bldg_Type == "OneFam"
+dt_new$Bldg_Type <- ifelse(dt$Bldg_Type == "OneFam", 1, 0)
+
+# Assign `Overall_Qual = 1` if Overall_Qual > Average
+dt_new$Overall_Qual <- ifelse(dt$Overall_Qual %in% c("Above_Average", "Good", "Very_Good", "Excellent", "Very_Excellent"), 1, 0)
+
+# Assign `Overall_Cond = 1` if Overall_Cond > Average
+dt_new$Overall_Cond <- ifelse(dt$Overall_Cond %in% c("Above_Average", "Good", "Very_Good", "Excellent", "Very_Excellent"), 1, 0)
+
+# Assign `Year_Built = 1` if Year_Built >= 1971
+dt_new$Year_Built <- ifelse(dt$Year_Built >= 1971, 1, 0)
+
+# Assign `Year_Sold = 1` if Year_Sold >= 2008
+dt_new$Year_Sold <- ifelse(dt$Year_Sold >= 2008, 1, 0)
+```
+
+
+**Question**
+
+- Makes scatterplot for each predictor with regression line and comments on results.
+
+**Answer**
+
+- `Garage_Cars`: positive relation with `Sale_Price`
+- `Gr_Liv_Area`: positive relation with `Sale_Price`
+- `Lot_Area`: positive relation with `Sale_Price`
+- `Lot_Frontage`: positive relation with `Sale_Price`; the slope is closer to zero than other predictors
+
+```{r, message=FALSE, warning=FALSE}
+#`Garage_Cars`, `Gr_Liv_Area`, `Lot_Area` + `Lot_Frontage`
+ggplot(data = dt_new, aes(x = Garage_Cars, y = Sale_Price)) +
+  geom_point() +
+  geom_smooth(method = lm, se = FALSE)
+
+ggplot(data = dt_new, aes(x = Gr_Liv_Area, y = Sale_Price)) +
+  geom_point() + 
+  geom_smooth(method = lm, se = FALSE)
+
+ggplot(data = dt_new, aes(x = Lot_Area, y = Sale_Price)) +
+  geom_point() + 
+  geom_smooth(method = lm, se = FALSE)
+
+ggplot(data = dt_new, aes(x = Lot_Frontage, y = Sale_Price)) +
+  geom_point() + 
+  geom_smooth(method = lm, se = FALSE)
+```
+
+
+
+2. Now fit a multiple regression to model the response using the three required predictors and your explanatory variable of choice. Show the regression output. 
+
+
+**Question**
+
+- Fit a simple linear regression model and shows output for each variable.
+
+**Answer**
+
+```{r, message=FALSE, warning=FALSE}
+HW7Q1A2 <- dt_new %>%
+  lm(Sale_Price ~ Garage_Cars + Gr_Liv_Area + Lot_Area + Lot_Frontage,
+            data = .)
+
+summary(HW7Q1A2)
+```
+
+3. Interpret the coefficients. Explain why you think you see (or don't see) the relationship on the figures or the model. Try to think about the possible processes that make certain neighborhoods more or less expensive.
+
+
+
+**Question**
+
+- Interprets intercept for each variable.
+
+**Answer**
+
+-Every intercept is expected and positively correlated.
+
+- `Garage_Cars` (Size of garage in car capacity)
+    - Other things being equal, if `Garage_Cars` increases by 1 car, `Sale_Price` is expected to increase by \$`r HW7Q1A2$coefficients[2]`.
+- `Gr_Liv_Area` (Above grade (ground) living area square feet)
+    - Other things being equal, if `Gr_Liv_Area` increases by 1 square feet, `Sale_Price` is expected to increase by \$`r HW7Q1A2$coefficients[3]`.
+- `Lot_Area` (Lot size in square feet)
+    - Other things being equal, if `Lot_Area` increases by 1 square feet, `Sale_Price` is expected to increase by \$`r HW7Q1A2$coefficients[4]`.
+- `Lot_Frontage` (Linear feet of street connected to property)
+    - Other things being equal, if `Lot_Frontage` increases by 1 feet, `Sale_Price` is expected to increase by \$`r HW7Q1A2$coefficients[5]`.
+
+#### Part b
+
+1. In Problemset6, question 5, you had built a kitchen-sink model by fitting a multiple regression model to predict the response using all of the predictors. Now compare the results for `Garage_Cars`, `Gr_Liv_Area` and `Lot_Area` across the multiple regression and the simple regressions that you just built. Interpret your results. Explain why the values differ.
+
+
+**Question**
+
+- Explains differences in regression results across simple and multiple regression for rm, lstat, and indus.
+
+**Answer**
+
+- All three coefficients of multiple regression are larger than kitchen-sink model.
+```{r, message=FALSE, warning=FALSE}
+library(jtools); library(huxtable)
+
+y <- c("Sale_Price")
+controls <- colnames(dt)[-17]
+
+HW6Q1B <- dt_new %>%
+  lm(formula = as.formula(paste(y, paste(c(controls), collapse = " + "), sep = " ~ ")), data = .) 
+
+export_summs(HW7Q1A2, HW6Q1B,
+             coefs = c("Garage_Cars", "Gr_Liv_Area", "Lot_Area", "Lot_Frontage"))
+```
+
+### Problem 2: Neighborhoods and Social Capital
+
+A paper by Vanholm & Monaghan in 2020 analyzed how evictions influence social capital across neighborhoods. The paper is available in Canvas under readings. They proxy social capital with number of 311 calls. These are similar to 911 emergency calls, but for non-urgent purposes (such as garbage or potholes on street). They estimate the model in the form:
+
+$$ 311calls_i = \beta_0 + \beta_1.evictions_i + \beta_2. demographics_i + \beta_3. urban Character_i + \epsilon $$
+
+Here `evictions` is the number of evictions in neighborhood $i$, `demographics` is a vector of neighborhood demographic characteristics, and `urbanCharacter` is a vector of urban environment
+specific variables.  $\beta_{1}$ is the variable of interest, the effect of evictions on social capital. Note, the paper actually uses the logs of a number of variables. For now, ignore logarithms when attempting to answer this particular question.
+The researchers' results are in Table 3 (page 8). There are three models shown and let's focus on model 3 (the column labeled as ``(3)'') and ignore the other two models. Again, ignore the fact that some variables are on a log scale by simply assuming they are not.
+
+Answer the following questions and include your interpretation of the model outputs:
+
+#### Part a
+.
+
+**Question**
+
+1. Do neighborhoods with more evictions see more or less 311 calls? By how much?  
+  
+**Answer**
+
+- At 5\% level, the effect is significant.
+- Neighborhoods with more evictions see more 311 calls.
+- Other things being equal, `311calls` is expected to increase by 0.048 unit if 1 more eviction.
+
+**Question**
+
+2. How is poverty rate associated with 311 calls?  How many more (or fewer) calls there are in neighborhoods with 10% point more poverty? 
+  
+**Answer**
+
+- At 5\% level, the effect is significant.
+- They are negative correlated.
+- Other things being equal, `311calls` is expected to decrease $0.14\times 10=1.4$ unit with 10\% point more poverty.
+
+**Question**
+
+3. What can you tell about association of race (\emph{white}) and calls?  
+
+**Answer**
+
+- At 5\% level, the effect is not significant.
+- They may be negative correlated.
+
+**Question**
+
+4. Is older median age associated with more or less 311 calls? At which level is this statistically significant?  
+
+**Answer**
+
+- At 5\% level, the effect is significant.
+- Older median age is associated with more 311 calls.
+
+**Question**
+
+5. The value for housing density is `-0.13`. What does this number mean? 
+
+**Answer**
+
+- Other things being equal, if housing density increases by 1 unit, `311calls` is expected to decrease by 0.31 unit. 
+
+**Question**
+
+6.  The omitted category for city is Austin, TX. Are there more or fewer calls in similar neighborhoods in Philadelphia, compared to Austin? By how much?
+
+**Answer**
+
+- At 5\% level, the effect is significant.
+- There are fewer calls in similar neighborhoods in Philadelphia, compared to Austin.
+- Other things being equal, `311calls` in Philadelphia is 0.56 unit less than in Austin.
+
+#### Part b 
+.
+
+**Question**
+
+1. Extra Credit: repeat the previous question, but now take into account the fact that some of the variables are on a log scale.  Answer the questions accordingly.
+
+**Answer**
+
+(log y-log x: x $\uparrow$ 1\%, y $\uparrow \widehat{\beta}\%$)
+A1: Other things being equal, if `eviction` increases by 1\%, `311calls` is expected to increase by 0.048\%.
+
+(log y-linear x: x $\uparrow$ 1, y $\uparrow \widehat{\beta}\times 100\%$)
+A2: Other things being equal, if `poverty rate` increases by 1 unit, `311calls` is expected to decrease by $0.14\times 100=14\%$.
+
+(log y-linear x: x $\uparrow$ 1, y $\uparrow \widehat{\beta}\times 100\%$)
+A3: Other things being equal, if `white` increases by 1 unit, `311calls` is expected to decrease by $0.038\times 100\% = 3.8$\%.
+
+(log y-linear x: x $\uparrow$ 1, y $\uparrow \widehat{\beta}\times 100\%$)
+A4: Other things being equal, if `Median Age` increases by 1 unit, `311calls` is expected to increase by $0.0067\times 100\% = 0.67$\%.
+
+(log y-log x: x $\uparrow$ 1\%, y $\uparrow \widehat{\beta}\%$)
+A5: Other things being equal, if `Housing Density` increases by 1\%, `311calls` is expected to decrease by 0.13\%.
+
+(log y-linear x: x $\uparrow$ 1, y $\uparrow \widehat{\beta}\times 100\%$)
+A6: Other things being equal, `311calls` in Philadelphia is $0.56\times 100\% = 56\%$ less than in Austin.
+
+
+### Problem 4: Price of Meal in Italian Restaurants in NYC
+
+The Italian restaurants in New York City are legendary and it's time to put your newly developed regression modeling skills to work to understand how they operate. What are the factors that contribute to the price of a meal at Italian restaurants in New York City?
+You will address this question with a series of multiple regression models. The Zagat guide is an influential review of restaurants. You will be looking at the numeric reviews posted on the Zagat review. Each restaurant is rated on a scale of 0 to 30 for the quality of its food, decor, and service. The data comes in the form of Zagat reviews from 168 Italian restaurants in New York City from 2001. The data is contained in the `nyc.csv` file on Canvas.
+
+### Part a
+
+
+
+1. You plan to visit an Italian restaurant for lunch. You check the Zagat review for three different restaurants and you find that Zagat has rated the quality of food for those restaurants as 20, 25, 35. What's your best estimate of the price of a meal that you would need to pay for lunch at each of these restaurants? *Hint: Before coming up with your best estimate you need to build a model and interpret your results. Also explain your choice of model* 
+
+**Question**
+
+- Build model for part a.
+- Explain model for part a.
+- Interpret model for part a.
+
+**Answer**
+
+```{r, message=FALSE, warning=FALSE}
+nyc <- read.csv("/Users/Jay/Desktop/nyc.csv")
+
+HW7Q4A1 <- nyc %>%
+  lm(Price ~ Food, data = .) 
+
+summary(HW7Q4A1)
+
+# predicted price
+predict(HW7Q4A1, data.frame(Food = c(20, 25, 35)))
+```
+
+2. Your office offers you a $100 reimbursement coupon for your lunch that you are only allowed to use in one go for a lunch meal. Given what you know about the relationship between food quality and price, the three restaurant suggestions, and that you need to provide at least 15% tip for your meal, which restaurant would you pick and why to stay within budget? 
+
+**Question**
+
+- Estimate meal price for each restaurant.
+- Correctly answers question and explains choice.
+
+**Answer**
+
+```{r, message=FALSE, warning=FALSE}
+# keep in budget
+nyc_new <- nyc %>%
+  filter(Price * 1.15 <= 100)
+
+# predict the price with three restaurant suggestions
+HW7Q4A2 <- nyc_new %>%
+  lm(Price ~ Food + Decor + Service + East, data = .)
+
+summary(HW7Q4A2)
+
+# save the predicted values
+nyc_new$PriceHat <- predict(HW7Q4A2)
+
+# show the final choice
+nyc_new %>% 
+  filter(PriceHat == max(PriceHat))
+```
+
+### Part b
+
+1. Based on your knowledge of the restaurant industry, do you think that the quality of the food as well as the service in a restaurant are important determinants of the price of a meal at that restaurant? How will you prove your intuition through regression modeling? Build a model and interpret the model output. 
+
+
+**Question**
+
+- Determines whether quality of food and service are important determinants of meal price.
+
+**Answer**
+
+- Yes, both variables are important determinants of meal price.
+
+```{r, message=FALSE, warning=FALSE}
+HW7Q4B1 <- nyc %>%
+  lm(Price ~ Food + Service, data = .)
+
+summary(HW7Q4B1)
+```
+
+2. Another important consideration in dining out is the decor. Are people willing to pay more for better restaurant decor? More interestingly, are people willing to pay more for fancy Decor, irrespective of the quality of food? How much more?  Now answer this question with an appropriate model. Justify the choice of your model and variables that go into the model.
+
+**Question**
+
+- Answers questions on decor.
+
+**Answer**
+
+- `decor` is an important factor of meal price.
+
+```{r, message=FALSE, warning=FALSE}
+HW7Q4B2 <- nyc %>%
+  lm(Price ~ Food + Service + Decor, data = .)
+
+summary(HW7Q4B2)
+```
+
+### Problem 5: Mario Kart
+
+For this problem, use the Mario Kart that is part of the `openintro` library (load the library and access the data using the `mariokart` command. See here for more info on the data: https://www.openintro.org/data/index.php?data=mariokart.
+
+1. Inspect the data using your usual inspect data functions to get a sense of how the variables are encoded and what values they typically take on. Describe the data and variables.
+
+**Question**
+
+- Inspects and describes data.
+
+**Answer**
+
+- Only 1 title is missing.
+
+```{r, message=FALSE, warning=FALSE}
+library(openintro)
+data(mariokart)
+
+# structure
+str(mariokart)
+
+# summary statistics
+summary(mariokart)
+
+# check missing
+is.na(mariokart) %>%
+  apply(2, sum)
+```
+
+2. Does the duration of the auction effect the price of a MarioKart? To answer this, build an appropriate model and interpret the results to answer this question.
+
+**Question**
+
+- Builds model for part b.
+
+**Answer**
+
+- Answer = Total price - ship price
+
+```{r, message=FALSE, warning=FALSE}
+HW7Q52 <- mariokart %>%
+  lm(I(total_pr - ship_pr) ~ duration, data = .)
+
+summary(HW7Q52)
+```
+
+**Question**
+
+- Interprets model for part b.
+
+**Answer**
+
+- If `duration` increases by 1 day, `total_pr` is expected to decrease `r abs(HW7Q52$coefficients[2])`.
+
+3. Experiment with other variables you see fit for this task, that is to see how they effect the price of an auction. Do other variables change your results in a major way? Did you have to exclude any variables before fitting the model? Make sure that you build an appropriate model while explaining your choice and interpret the results to answer the questions.
+
+
+**Question**
+
+- Builds model for part c.
+
+**Answer**
+
+```{r, message=FALSE, warning=FALSE}
+#cor(mariokart[, -c(1, 4, 8, 10, 12)])
+
+HW7Q53 <- mariokart %>%
+  lm(I(total_pr - ship_pr) ~ duration + n_bids + seller_rate + wheels, data = .)
+
+summary(HW7Q53)
+```
+
+
+**Question**
+
+- Interprets model for part c
+
+**Answer**
+
+- Other things being equal, if `wheels` increases by 1 unit, `auction price` is expected to increase by `r HW7Q53$coefficients[5]`.
+
+**Question**
+
+- Explains whether variables should be removed.
+
+**Answer**
+
+- `duration` and `seller_rate` may be considered to remove, but it may impact other values of other coefficients.
+
+
+

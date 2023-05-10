@@ -1,0 +1,206 @@
+---
+title: 'IMT 573: Problem Set 2 - Working with Data'
+author: "Jay Kuo"
+date: 'Due: Friday, October 21, 2022'
+output:
+  pdf_document: default
+  html_document: default
+---
+
+##### Collaborators: <!-- BE SURE TO LIST ALL COLLABORATORS HERE! -->
+
+##### Instructions:
+
+Before beginning this assignment, please ensure you have access to R and RStudio. 
+
+1. Download the `problemset2.Rmd` file from Canvas. Open `problemset2.Rmd` in RStudio and supply your solutions to the assignment by editing `problemset2.Rmd`. 
+
+2. Replace the "Insert Your Name Here" text in the `author:` field with your own full name. Any collaborators must be listed on the top of your assignment. 
+
+3. Be sure to include well-documented (e.g. commented) code chucks, figures, and clearly written text chunk explanations as necessary. Any figures should be clearly labeled and appropriately referenced within the text. Be sure that each visualization adds value to your written explanation; avoid redundancy -- you do not need four different visualizations of the same pattern.
+
+4. All materials and resources that you use (with the exception of lecture slides) must be appropriately referenced within your assignment. In particular, note that Stack Overflow is licenses as Creative Commons (CC-BY-SA). This means you have to attribute any code you refer from SO.
+
+5. Partial credit will be awarded for each question for which a serious attempt at finding an answer has been shown. But please **DO NOT** submit pages and pages of hard-to-read code and attempts that is impossible to grade. That is, avoid redundancy. Remember that one of the key goals of a data scientist is to produce coherent reports that others can easily follow.  Students are \emph{strongly} encouraged to attempt each question and to document their reasoning process even if they cannot find the correct answer. If you would like to include R code to show this process, but it does not run without errors you can do so with the `eval=FALSE` option as follows:
+
+```{r example chunk with a bug, eval=FALSE}
+a + b # these objects dont' exist 
+# if you run this on its own it with give an error
+```
+
+6. When you have completed the assignment and have **checked** that your code both runs in the Console and knits correctly when you click `Knit PDF`, rename the knitted PDF file to `ps2_ourLastName_YourFirstName.pdf`, and submit the PDF file on Canvas.
+
+7.  Collaboration is often fun and useful, but each student must turn in an individual write-up in their own words as well as code/work that is their own.  Regardless of whether you work with others, what you turn in must be your own work; this includes code and interpretation of results. The names of all collaborators must be listed on each assignment. Do not copy-and-paste from other students' responses or code.
+
+##### Setup
+
+In this problem set you will need, at minimum, the following R packages.
+
+```{r Setup, message=FALSE}
+# Load standard libraries
+library(tidyverse)
+library('nycflights13')
+```
+
+#### Problem 1: Describing the NYC Flights Data
+
+In this problem set we will continue to use the data on all flights that departed NYC (i.e. JFK, LGA or EWR) in 2013. Recall, you can find this data in the `nycflights13` R package. Load the data in R and ensure you know the variables in the data.  Keep the documentation of the dataset (e.g. the help file) nearby.
+
+In Problem Set 1, you started to explore this data. Now we will perform a more thorough description and summarization of the data, making use of our new data manipulation skills to answer a specific set of questions. When answering these questions, be sure to include the code you used in computing empirical responses, along with code comments. Your response should also be accompanied by a written explanation, as code alone is not a sufficient response.
+```{r}
+data(flights)
+
+flights <- tbl_df(flights)
+
+flights
+```
+
+##### (a) Describe and Summarize
+
+Answer the following questions in order to describe and summarize the `flights` data. 
+
+\begin{enumerate}
+\item How many flights out of NYC are there in the data?
+
+Ans: 336776
+Description: JFK, LGA, and EWR are all flights from NYC. Therefore, I count all the flights flew from JFK, LGA, and EWR. Code shown below, and the answer is 336776. 
+```{r}
+Ans <- count(flights[flights$origin == "JFK",]) + count(flights[flights$origin == "LGA",]) + count(flights[flights$origin == "EWR",])
+Ans
+```
+
+\item How many NYC airports are included in this data?  Which airports are these?
+
+Ans: Three, which are EWR, JFK, and LGA.
+EWR is Newark International Airport
+JFK is John F. Kennedy International Airport
+LGA is LaGuardia Airport.
+This information is what I found on Google.
+
+\item Into how many airports did the airlines fly from NYC in 2013?
+
+Ans: 105
+Description: The answer should be the number of distinct airports of the flights flew to destinations. Therefore, I use the code below to count the distinct airports of the destination.
+```{r}
+airports <- n_distinct(flights$dest)
+airports
+```
+
+\item How many flights were there from NYC to Seattle (airport code \texttt{SEA})?
+
+Ans: 3923
+Description: Since all the flights flew from NYC(the number of rows is 336776, same as number of rows of JKF, LGA, and EWR.), Therefore, I answer the number of rows that the destination is Seattle. 
+```{r}
+nrow(flights[flights$dest == "SEA", ])
+```
+
+\item Were the any flights from NYC to Spokane \texttt{(GAG)}?
+
+Ans: No, there were no flight from NYC to Spokane.
+Description: I count the number of rows that the destination is Spokane, and it returns 0 as shown below.
+```{r}
+nrow(flights[flights$dest == "GAG",])
+```
+
+
+\item What about missing destination codes?  Are there any destinations that do not look like valid airport codes (i.e. three-letter-all-upper case)?
+
+Ans: No, the number of valid airport codes is the same as total rows of the data frame.
+Description: Using the regular expression matching. The number of valid airport codes is same as the number of rows of the data frame. 
+```{r}
+valid <- grepl("^[[:upper:]]{3}$", flights$dest)
+sum(valid)
+```
+
+\end{enumerate}
+
+**Hint**:check the function `grepl` to do regular expression matching. You may use `"^[[:upper:]]{3}$"` for a regular expression that matches three upper case letters. See an example below:
+```
+grepl("^[[:upper:]]{3}$", c("12AB", "SEA", "ABCD", "ATL"))
+
+# [1] FALSE  TRUE FALSE  TRUE
+```
+
+##### (b) Reflect and Question
+
+Comment on the questions (and answers) so far.  Were you able to answer all of these questions?  Are all questions well defined?  Is the data good enough to answer all these?
+
+Ans: Yes, the questions are well defined and the data is good enough to answer all of the problems above. However, since I am not familiar with the airport and flight information, I have to search the airport abbreviation to know that which airports are located at New York. Other than that, I believe the information is enough to answer the questions above. 
+
+#### Problem 2: NYC Flight Delays
+
+Flights are often delayed. Let's look closer at this topic using the NYC Flight dataset. Answer the following questions about flight delays using the `dplyr` data manipulation verbs we talked about in class.
+
+##### (a) Typical Delays
+
+What is the typical delay of flights in this data?
+```{r}
+flights['total_delay'] <-  flights['arr_delay'] + flights['dep_delay']
+flights %>% group_by(origin, dest) %>% 
+  summarise(total_delay, na.rm = TRUE) %>% arrange(desc(total_delay))
+```
+
+
+##### (b) Defining Flight Delays
+
+What definition of flight delay did you use to answer part (a)? Did you do any specific exploration and description of this variable prior to using it? If no, please do so now. Is there any missing data?  Are there any implausible or invalid entries?  
+
+##### (c) Delays by Destination
+
+Now compute flight delay by destination.  Which ones are the worst three destinations from NYC if you don't like flight delays? Be sure to justify your delay variable choice. 
+
+
+
+##### (d) Delays by time of day
+
+We'd like to know how much delays depend on the time of day. Are there more delays in the mornings? Late night when all the daily delays may accumulate? Create a visualization (graph or table) to illustrate your findings.
+
+##### (e) Reflect and Challenge Your Results
+
+After completing the exploratory analyses from Problem 2, do you have any concerns about these questions and your findings? How well defined were the questions? If you feel a question is not defined well enough, re-formulate it in a more specific way so you can actually answer this question. And state clearly what is your more precise question.  
+Can you formulate any additional questions regarding flight delays?
+
+#### Problem 3: Let's Fly Across the Country!
+
+#### (a) Describe and Summarize
+
+Answer the following questions in order to describe and summarize the `flights` data, focusing on flights from New York to Portland, OR (airport code `PDX`).
+
+\begin{enumerate}
+\item How many flights were there from NYC airports to Portland in 2013?
+
+Ans: 1354
+```{r}
+to_PDX <- count(flights[flights['dest'] == 'PDX',])
+to_PDX
+```
+
+\item How many airlines flew from NYC to Portland?
+
+Ans: 1354
+```{r}
+flights %>%
+  
+```
+
+
+
+\item Which are these airlines (find the 2-letter abbreviations)?  How many times did each of these go to Portland?
+
+
+
+
+\item How many unique airplanes flew from NYC to PDX? \\ \textcolor{blue}{Hint: airplane tail number is a unique identifier of an airplane.}
+\item How many different airplanes arrived from each of the three NYC airports to Portland?
+\item What percentage of flights to Portland were delayed at departure by more than 15 minutes?
+\item Is one of the New York airports noticeably worse in terms of departure delays for flights to Portland than others?
+\end{enumerate}
+
+#### (b) Reflect and Question
+
+Comment on the questions (and answers) in this analysis.  Were you able to answer all of these questions?  Are all questions well defined?  Is the data good enough to answer all these?
+
+#### Extra Credit
+##### Seasonal Delays
+
+Let's get back to the question of flight delays. Flight delays may be partly related to weather, as you might have experienced for yourself.  We do not have weather information here but let's analyze how it is related to season. Which seasons have the worst flights delays? Why might this be the case? In your communication of your analysis use one graphical visualization and one tabular representation of your findings.
